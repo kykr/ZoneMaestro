@@ -42,8 +42,10 @@
   /* Image grid */
   .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
   .image-item { text-align: center; }
-  .image-item img { width: 100%; border-radius: 8px; border: 2px solid #e0e0e0; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
-  .image-item img:hover { transform: scale(1.03); border-color: #4a90d9; }
+  .image-frame { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; border: 2px solid #e0e0e0; overflow: hidden; background: #f1f3f6; }
+  .image-item img { width: 100%; height: 100%; object-fit: cover; object-position: center; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+  .image-item:hover .image-frame { border-color: #4a90d9; }
+  .image-item img:hover { transform: scale(1.03); }
   .image-item .method-label { margin-top: 6px; font-weight: 700; font-size: 1.05em; color: #4a90d9; }
 
   /* Lightbox */
@@ -137,17 +139,36 @@
 // Each case folder must contain:
 // - rendered images named in METHODS below
 // - a user_input.txt instruction file
-const CASES = [
-  { id: "case1", instruction: "" },
-  { id: "case2", instruction: "" },
-  { id: "case3", instruction: "" },
-  { id: "case4", instruction: "" },
-  { id: "case5", instruction: "" },
-  { id: "case6", instruction: "" },
-  { id: "case7", instruction: "" },
-  { id: "case8", instruction: "" },
-  { id: "case9", instruction: "" }
-];
+const BASE_CASE_IDS = ["case1", "case2", "case3", "case4", "case5", "case6", "case7", "case8", "case9"];
+const TOTAL_TRIALS = 20;
+
+function shuffle(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function buildTrials(totalTrials) {
+  const trials = [];
+  while (trials.length < totalTrials) {
+    const block = shuffle(BASE_CASE_IDS);
+    for (const sourceCaseId of block) {
+      if (trials.length >= totalTrials) break;
+      const trialIndex = trials.length + 1;
+      trials.push({
+        id: `trial${trialIndex}`,
+        sourceCaseId,
+        instruction: ""
+      });
+    }
+  }
+  return trials;
+}
+
+const CASES = buildTrials(TOTAL_TRIALS);
 
 // Method file names (will be shuffled per case)
 const METHODS = [
@@ -175,18 +196,24 @@ const caseShuffles = [];
 
 // ====== INIT ======
 async function loadCaseInstructions() {
+  const instructionCache = {};
+
   await Promise.all(
-    CASES.map(async (c) => {
+    BASE_CASE_IDS.map(async (baseId) => {
       try {
-        const resp = await fetch(`${c.id}/user_input.txt`, { cache: "no-store" });
-        if (!resp.ok) throw new Error(`Failed to load ${c.id}/user_input.txt`);
-        c.instruction = (await resp.text()).replace(/\s+/g, " ").trim();
+        const resp = await fetch(`${baseId}/user_input.txt`, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`Failed to load ${baseId}/user_input.txt`);
+        instructionCache[baseId] = (await resp.text()).replace(/\s+/g, " ").trim();
       } catch (err) {
-        c.instruction = "Instruction file missing. Please check user_input.txt in this case folder.";
+        instructionCache[baseId] = "Instruction file missing. Please check user_input.txt in this case folder.";
         console.warn(err);
       }
     })
   );
+
+  CASES.forEach((c) => {
+    c.instruction = instructionCache[c.sourceCaseId] || "Instruction file missing.";
+  });
 }
 
 async function init() {
@@ -204,10 +231,12 @@ async function init() {
 
     let imagesHTML = '<div class="image-grid">';
     shuffled.forEach((m, mi) => {
-      const imgPath = `${c.id}/${m.file}`;
+      const imgPath = `${c.sourceCaseId}/${m.file}`;
       imagesHTML += `
         <div class="image-item">
-          <img src="${imgPath}" alt="Method ${LABELS[mi]}" onclick="showLightbox(this.src)" loading="lazy">
+          <div class="image-frame">
+            <img src="${imgPath}" alt="Method ${LABELS[mi]}" onclick="showLightbox(this.src)" loading="lazy">
+          </div>
           <div class="method-label">Method ${LABELS[mi]}</div>
         </div>`;
     });
@@ -328,7 +357,7 @@ function submitAll() {
 function downloadResults() {
   const pid = document.getElementById('participant-id').value.trim() || 'anonymous';
   // CSV header
-  let csv = 'participant_id,case_id,dimension,';
+  let csv = 'participant_id,case_id,source_case_id,dimension,';
   csv += LABELS.slice(0, METHODS.length).map(l => 'Method_' + l).join(',');
   csv += ',Method_' + LABELS.slice(0, METHODS.length).join('_real,Method_') + '_real';
   csv += '\n';
@@ -338,7 +367,7 @@ function downloadResults() {
     DIMENSIONS.forEach(d => {
       const checked = Array.from(document.querySelectorAll(`input[name="case${ci}_${d.key}"]:checked`)).map(cb => cb.value);
       // Anonymous labels
-      let row = `${pid},${c.id},${d.key}`;
+      let row = `${pid},${c.id},${c.sourceCaseId},${d.key}`;
       LABELS.slice(0, METHODS.length).forEach(l => {
         row += ',' + (checked.includes(l) ? 1 : 0);
       });
