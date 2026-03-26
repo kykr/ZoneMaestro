@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perceptual Evaluation of 3D Indoor Scene Generation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #333; line-height: 1.6; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { text-align: center; padding: 40px 20px 30px; background: #fff; border-bottom: 3px solid #4a90d9; margin-bottom: 30px; }
+  .header h1 { font-size: 1.8em; color: #2c3e50; margin-bottom: 10px; }
+  .header p { color: #666; max-width: 800px; margin: 0 auto; font-size: 0.95em; }
+
+  /* Instructions panel */
+  .instructions-panel { background: #eef4fb; border-left: 4px solid #4a90d9; padding: 20px 25px; margin-bottom: 30px; border-radius: 0 8px 8px 0; }
+  .instructions-panel h3 { color: #2c3e50; margin-bottom: 10px; }
+  .instructions-panel ul { padding-left: 20px; }
+  .instructions-panel li { margin-bottom: 6px; font-size: 0.93em; }
+  .dim-label { font-weight: 700; color: #4a90d9; }
+
+  /* Participant info */
+  .participant-section { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 30px; }
+  .participant-section label { font-weight: 600; margin-right: 10px; }
+  .participant-section input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 0.95em; width: 300px; }
+
+  /* Progress bar */
+  .progress-bar { background: #e0e0e0; border-radius: 20px; height: 8px; margin-bottom: 30px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #4a90d9, #6bb5f0); border-radius: 20px; transition: width 0.4s ease; }
+  .progress-text { text-align: center; font-size: 0.9em; color: #888; margin-bottom: 8px; }
+
+  /* Case card */
+  .case-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 30px; margin-bottom: 30px; display: none; }
+  .case-card.active { display: block; }
+  .case-title { font-size: 1.3em; color: #2c3e50; margin-bottom: 5px; }
+  .case-instruction { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px 20px; margin: 15px 0 25px; font-style: italic; color: #444; font-size: 0.95em; line-height: 1.7; }
+  .case-instruction strong { color: #c0392b; font-style: normal; }
+
+  /* Image grid */
+  .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+  .image-item { text-align: center; }
+  .image-item img { width: 100%; border-radius: 8px; border: 2px solid #e0e0e0; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+  .image-item img:hover { transform: scale(1.03); border-color: #4a90d9; }
+  .image-item .method-label { margin-top: 6px; font-weight: 700; font-size: 1.05em; color: #4a90d9; }
+
+  /* Lightbox */
+  .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; cursor: zoom-out; }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+
+  /* Questions */
+  .question-block { margin-bottom: 20px; padding: 15px 20px; background: #fafbfc; border-radius: 8px; border: 1px solid #eee; }
+  .question-block h4 { margin-bottom: 10px; color: #2c3e50; }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; }
+  .checkbox-group label { display: flex; align-items: center; gap: 5px; padding: 6px 14px; background: #fff; border: 1px solid #ddd; border-radius: 20px; cursor: pointer; font-size: 0.9em; transition: all 0.2s; user-select: none; }
+  .checkbox-group label:hover { border-color: #4a90d9; background: #f0f7ff; }
+  .checkbox-group input:checked + span { color: #4a90d9; font-weight: 700; }
+  .checkbox-group label:has(input:checked) { border-color: #4a90d9; background: #e8f2fc; }
+  .checkbox-group input { accent-color: #4a90d9; }
+
+  /* Navigation */
+  .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+  .btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-prev { background: #e0e0e0; color: #555; }
+  .btn-prev:hover { background: #d0d0d0; }
+  .btn-next { background: #4a90d9; color: #fff; }
+  .btn-next:hover { background: #3a7bc8; }
+  .btn-submit { background: #27ae60; color: #fff; }
+  .btn-submit:hover { background: #219a52; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Thank you page */
+  .thank-you { display: none; text-align: center; padding: 60px 20px; }
+  .thank-you h2 { color: #27ae60; font-size: 2em; margin-bottom: 15px; }
+  .thank-you p { color: #666; font-size: 1.1em; margin-bottom: 25px; }
+  .btn-download { background: #4a90d9; color: #fff; padding: 14px 35px; border: none; border-radius: 8px; font-size: 1.05em; font-weight: 600; cursor: pointer; }
+  .btn-download:hover { background: #3a7bc8; }
+
+  /* Warning */
+  .warning { color: #e74c3c; font-size: 0.85em; margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Perceptual Evaluation of 3D Indoor Scene Generation</h1>
+  <p>Please evaluate 3D indoor scenes generated by different methods based on text instructions.</p>
+</div>
+
+<div class="container">
+
+  <!-- Instructions -->
+  <div class="instructions-panel" id="instructions-panel">
+    <h3>Evaluation Guidelines</h3>
+    <p style="margin-bottom:10px;">You will be shown a series of cases. Each case consists of a <b>text instruction</b> describing a desired 3D indoor scene, and <b>seven rendered scenes</b> generated by different methods (labeled Method A–G, in randomized order).</p>
+    <p style="margin-bottom:10px;">For each case, please evaluate all seven methods along <b>three dimensions</b>. For each dimension, <b>select all methods</b> whose output satisfies the criterion:</p>
+    <ul>
+      <li><span class="dim-label">Zone Assignment:</span> Objects are placed in the correct functional zones as specified (e.g., "dining area", "lounging zone").</li>
+      <li><span class="dim-label">Relative Placement:</span> Spatial relationships match the instruction (e.g., "near the wall", "central seating cluster", "aligned to the perimeter").</li>
+      <li><span class="dim-label">Object Combination:</span> The specified object groups/combinations are present in the scene (e.g., "kitchen cabinets and appliances", "sofas and armchairs").</li>
+    </ul>
+    <p style="margin-top:12px; font-size:0.9em; color:#888;">Click on any image to enlarge. Estimated time: ~10 minutes.</p>
+  </div>
+
+  <!-- Participant Info -->
+  <div class="participant-section">
+    <label for="participant-id">Participant ID:</label>
+    <input type="text" id="participant-id" placeholder="e.g., P01, your initials, etc.">
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-text" id="progress-text">Case 1 / 9</div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:11.1%"></div></div>
+
+  <!-- Case Cards (generated by JS) -->
+  <div id="cases-container"></div>
+
+  <!-- Thank you -->
+  <div class="thank-you" id="thank-you">
+    <h2>&#10003; Thank You!</h2>
+    <p>Your responses have been recorded. Please download the results file and send it back to the study organizer.</p>
+    <button class="btn-download" onclick="downloadResults()">Download Results (CSV)</button>
+  </div>
+
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
+  <img id="lightbox-img" src="" alt="Enlarged view">
+</div>
+
+<script>
+// ====== CONFIGURATION ======
+// Each case folder must contain:
+// - rendered images named in METHODS below
+// - a user_input.txt instruction file
+const CASES = [
+  { id: "case1", instruction: "" },
+  { id: "case2", instruction: "" },
+  { id: "case3", instruction: "" },
+  { id: "case4", instruction: "" },
+  { id: "case5", instruction: "" },
+  { id: "case6", instruction: "" },
+  { id: "case7", instruction: "" },
+  { id: "case8", instruction: "" },
+  { id: "case9", instruction: "" }
+];
+
+// Method file names (will be shuffled per case)
+const METHODS = [
+  { key: "layoutgpt", file: "layoutgpt.png" },
+  { key: "diffuscene", file: "diffuscene.png" },
+  { key: "holodeck", file: "holodeck.png" },
+  { key: "idesign", file: "idesign.png" },
+  { key: "layoutvlm", file: "layoutvlm.png" },
+  { key: "respace", file: "respace.png" },
+  { key: "ours", file: "ours.png" }
+];
+
+const DIMENSIONS = [
+  { key: "zone", label: "Zone Assignment", desc: "Which methods correctly place objects in the functional zones described in the instruction?" },
+  { key: "placement", label: "Relative Placement", desc: "Which methods correctly follow the spatial relationships described in the instruction?" },
+  { key: "combination", label: "Object Combination", desc: "Which methods include the object groups/combinations specified in the instruction?" }
+];
+
+const LABELS = ["A", "B", "C", "D", "E", "F", "G"];
+
+// ====== STATE ======
+let currentCase = 0;
+// Store the random mapping for each case: caseShuffles[i] = shuffled METHODS array
+const caseShuffles = [];
+
+// ====== INIT ======
+async function loadCaseInstructions() {
+  await Promise.all(
+    CASES.map(async (c) => {
+      try {
+        const resp = await fetch(`${c.id}/user_input.txt`, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`Failed to load ${c.id}/user_input.txt`);
+        c.instruction = (await resp.text()).replace(/\s+/g, " ").trim();
+      } catch (err) {
+        c.instruction = "Instruction file missing. Please check user_input.txt in this case folder.";
+        console.warn(err);
+      }
+    })
+  );
+}
+
+async function init() {
+  await loadCaseInstructions();
+  const container = document.getElementById('cases-container');
+
+  CASES.forEach((c, ci) => {
+    // Shuffle methods for this case
+    const shuffled = [...METHODS].sort(() => Math.random() - 0.5);
+    caseShuffles.push(shuffled);
+
+    const card = document.createElement('div');
+    card.className = 'case-card' + (ci === 0 ? ' active' : '');
+    card.id = 'case-' + ci;
+
+    let imagesHTML = '<div class="image-grid">';
+    shuffled.forEach((m, mi) => {
+      const imgPath = `${c.id}/${m.file}`;
+      imagesHTML += `
+        <div class="image-item">
+          <img src="${imgPath}" alt="Method ${LABELS[mi]}" onclick="showLightbox(this.src)" loading="lazy">
+          <div class="method-label">Method ${LABELS[mi]}</div>
+        </div>`;
+    });
+    imagesHTML += '</div>';
+
+    let questionsHTML = '';
+    DIMENSIONS.forEach(d => {
+      let checkboxes = '';
+      shuffled.forEach((m, mi) => {
+        checkboxes += `
+          <label>
+            <input type="checkbox" name="case${ci}_${d.key}" value="${LABELS[mi]}">
+            <span>Method ${LABELS[mi]}</span>
+          </label>`;
+      });
+      checkboxes += `
+        <label>
+          <input type="checkbox" name="case${ci}_${d.key}" value="None" onchange="handleNone(this)">
+          <span>None</span>
+        </label>`;
+
+      questionsHTML += `
+        <div class="question-block">
+          <h4>${d.label}</h4>
+          <p style="font-size:0.9em;color:#666;margin-bottom:10px;">${d.desc} <em>(Select all that apply)</em></p>
+          <div class="checkbox-group">${checkboxes}</div>
+        </div>`;
+    });
+
+    const isLast = ci === CASES.length - 1;
+    const navHTML = `
+      <div class="warning" id="warning-${ci}">Please answer all three dimensions before proceeding.</div>
+      <div class="nav-buttons">
+        <button class="btn btn-prev" onclick="navigate(-1)" ${ci === 0 ? 'disabled' : ''}>&#8592; Previous</button>
+        ${isLast
+          ? `<button class="btn btn-submit" onclick="submitAll()">Submit &#10003;</button>`
+          : `<button class="btn btn-next" onclick="navigate(1)">Next &#8594;</button>`
+        }
+      </div>`;
+
+    card.innerHTML = `
+      <div class="case-title">Case ${ci + 1} of ${CASES.length}</div>
+      <div class="case-instruction"><b>Instruction:</b> ${c.instruction}</div>
+      ${imagesHTML}
+      ${questionsHTML}
+      ${navHTML}`;
+
+    container.appendChild(card);
+  });
+}
+
+function showLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+
+function handleNone(el) {
+  if (el.checked) {
+    const name = el.name;
+    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+      if (cb.value !== "None") cb.checked = false;
+    });
+  }
+}
+
+// Also uncheck "None" when a method is selected
+document.addEventListener('change', function(e) {
+  if (e.target.type === 'checkbox' && e.target.value !== 'None' && e.target.checked) {
+    const name = e.target.name;
+    const noneBox = document.querySelector(`input[name="${name}"][value="None"]`);
+    if (noneBox) noneBox.checked = false;
+  }
+});
+
+function validateCase(ci) {
+  for (const d of DIMENSIONS) {
+    const checked = document.querySelectorAll(`input[name="case${ci}_${d.key}"]:checked`);
+    if (checked.length === 0) return false;
+  }
+  return true;
+}
+
+function navigate(dir) {
+  if (dir > 0 && !validateCase(currentCase)) {
+    document.getElementById(`warning-${currentCase}`).style.display = 'block';
+    return;
+  }
+  document.getElementById(`warning-${currentCase}`).style.display = 'none';
+  document.getElementById('case-' + currentCase).classList.remove('active');
+  currentCase += dir;
+  document.getElementById('case-' + currentCase).classList.add('active');
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateProgress() {
+  const pct = ((currentCase + 1) / CASES.length * 100).toFixed(1);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `Case ${currentCase + 1} / ${CASES.length}`;
+}
+
+function submitAll() {
+  if (!validateCase(currentCase)) {
+    document.getElementById(`warning-${currentCase}`).style.display = 'block';
+    return;
+  }
+  const pid = document.getElementById('participant-id').value.trim() || 'anonymous';
+  if (pid === 'anonymous' && !confirm('You have not entered a Participant ID. Continue as anonymous?')) return;
+
+  document.getElementById('cases-container').style.display = 'none';
+  document.getElementById('instructions-panel').style.display = 'none';
+  document.querySelector('.participant-section').style.display = 'none';
+  document.querySelector('.progress-bar').style.display = 'none';
+  document.getElementById('progress-text').style.display = 'none';
+  document.getElementById('thank-you').style.display = 'block';
+}
+
+function downloadResults() {
+  const pid = document.getElementById('participant-id').value.trim() || 'anonymous';
+  // CSV header
+  let csv = 'participant_id,case_id,dimension,';
+  csv += LABELS.slice(0, METHODS.length).map(l => 'Method_' + l).join(',');
+  csv += ',Method_' + LABELS.slice(0, METHODS.length).join('_real,Method_') + '_real';
+  csv += '\n';
+
+  CASES.forEach((c, ci) => {
+    const shuffled = caseShuffles[ci];
+    DIMENSIONS.forEach(d => {
+      const checked = Array.from(document.querySelectorAll(`input[name="case${ci}_${d.key}"]:checked`)).map(cb => cb.value);
+      // Anonymous labels
+      let row = `${pid},${c.id},${d.key}`;
+      LABELS.slice(0, METHODS.length).forEach(l => {
+        row += ',' + (checked.includes(l) ? 1 : 0);
+      });
+      // Real method names (for your analysis)
+      shuffled.forEach((m, mi) => {
+        row += ',' + m.key;
+      });
+      csv += row + '\n';
+    });
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `user_study_${pid}_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Init on load
+init().catch((err) => {
+  console.error('Initialization failed:', err);
+});
+</script>
+</body>
+</html>
