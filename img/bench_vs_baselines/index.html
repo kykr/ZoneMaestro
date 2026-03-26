@@ -42,10 +42,10 @@
   /* Image grid */
   .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
   .image-item { text-align: center; }
-  .image-frame { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; border: 2px solid #e0e0e0; overflow: hidden; background: #f1f3f6; }
-  .image-item img { width: 100%; height: 100%; object-fit: cover; object-position: center; cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+  .image-frame { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; border: 2px solid #e0e0e0; overflow: hidden; background: #fff; }
+  .image-item img { width: 100%; height: 100%; object-fit: contain; object-position: center; cursor: pointer; transition: filter 0.2s, border-color 0.2s; }
   .image-item:hover .image-frame { border-color: #4a90d9; }
-  .image-item img:hover { transform: scale(1.03); }
+  .image-item img:hover { filter: brightness(0.98); }
   .image-item .method-label { margin-top: 6px; font-weight: 700; font-size: 1.05em; color: #4a90d9; }
 
   /* Lightbox */
